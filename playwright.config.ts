@@ -21,7 +21,13 @@ export default defineConfig({
   use: {
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'on',
+    video: {
+      mode: 'on',
+      show: {
+        actions: { position: 'top-left' },
+        test: { position: 'top-right', level: 'step' },
+      },
+    },
     actionTimeout: 10_000,
     navigationTimeout: 5_000,
   },
