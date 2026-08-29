@@ -67,7 +67,7 @@ cp .env.secret.example .env.secret
 
 `USER_SIGNUP_EMAIL` must contain the literal string `[replace]`. The suite swaps it for a unique value so parallel workers do not collide.
 
-Do not put credentials in specs. For GitHub Actions, paste the same file into a repository secret named `ENV_SECRET`.
+Do not put credentials in specs. For GitHub Actions, add each of those names as a repository secret.
 
 ### 5. Run the tests
 
@@ -145,7 +145,7 @@ Draft pull requests do not run. A failed smoke job does not fail the workflow, s
 
 Each run uploads an HTML report artifact (`playwright-report-smoke` or `playwright-report-full`) for 30 days. Traces, screenshots, and videos are inside that zip. Download it, unzip, then open with `npx playwright show-report`.
 
-Paste the contents of `.env.secret` into the repository secret `ENV_SECRET`. The job writes that file before tests, so Playwright loads it the same way as a local run.
+Add repository secrets named `USER_DEFAULT_EMAIL`, `USER_DEFAULT_PASSWORD`, `USER_SIGNUP_EMAIL`, and `USER_SIGNUP_PASSWORD`. The job writes `.env.secret` from those before tests, so Playwright loads it the same way as a local run.
 
 ## Coding rules in short
 

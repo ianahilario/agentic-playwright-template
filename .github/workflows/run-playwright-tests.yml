@@ -7,6 +7,15 @@ on:
         description: smoke or full
         required: true
         type: string
+    secrets:
+      USER_DEFAULT_EMAIL:
+        required: true
+      USER_DEFAULT_PASSWORD:
+        required: true
+      USER_SIGNUP_EMAIL:
+        required: true
+      USER_SIGNUP_PASSWORD:
+        required: true
   workflow_dispatch:
     inputs:
       suite:
@@ -29,8 +38,17 @@ jobs:
       - uses: actions/checkout@v4
       - name: Write env file
         env:
-          ENV_SECRET: ${{ secrets.ENV_SECRET }}
-        run: printf '%s\n' "$ENV_SECRET" > .env.secret
+          USER_DEFAULT_EMAIL: ${{ secrets.USER_DEFAULT_EMAIL }}
+          USER_DEFAULT_PASSWORD: ${{ secrets.USER_DEFAULT_PASSWORD }}
+          USER_SIGNUP_EMAIL: ${{ secrets.USER_SIGNUP_EMAIL }}
+          USER_SIGNUP_PASSWORD: ${{ secrets.USER_SIGNUP_PASSWORD }}
+        run: |
+          {
+            printf 'USER_DEFAULT_EMAIL=%s\n' "$USER_DEFAULT_EMAIL"
+            printf 'USER_DEFAULT_PASSWORD=%s\n' "$USER_DEFAULT_PASSWORD"
+            printf 'USER_SIGNUP_EMAIL=%s\n' "$USER_SIGNUP_EMAIL"
+            printf 'USER_SIGNUP_PASSWORD=%s\n' "$USER_SIGNUP_PASSWORD"
+          } > .env.secret
       - name: Install dependencies
         env:
           HUSKY: '0'
