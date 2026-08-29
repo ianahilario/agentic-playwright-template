@@ -132,7 +132,7 @@ Local runs use as many workers as the machine has. CI uses one worker and two re
 
 ## CI
 
-Jobs run in Microsoft's Playwright Docker image, pinned to the Playwright version in `package-lock.json`. [`.github/workflows/run-playwright-tests.yml`](.github/workflows/run-playwright-tests.yml) is the reusable workflow. Callers pass `suite: smoke` or `suite: full`.
+Jobs run in Microsoft's Playwright Docker image, pinned to the Playwright version in `package-lock.json`. [`.github/workflows/run-playwright-tests.yml`](.github/workflows/run-playwright-tests.yml) is the reusable workflow. Callers pass `suite: smoke` or `suite: full`. You can also run that workflow from the Actions tab and pick the suite.
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs `@smoke` tests when:
 
@@ -141,7 +141,7 @@ Jobs run in Microsoft's Playwright Docker image, pinned to the Playwright versio
 
 Draft pull requests do not run. A failed smoke job does not fail the workflow, so it will not block a deploy that waits on CI.
 
-[`.github/workflows/nightly.yml`](.github/workflows/nightly.yml) runs the full suite every day at 08:00 Hong Kong time, and on demand from Actions. Nightly failures fail the run.
+[`.github/workflows/nightly.yml`](.github/workflows/nightly.yml) runs the full suite every day at 08:00 Hong Kong time. Nightly failures fail the run.
 
 Each run uploads an HTML report artifact (`playwright-report-smoke` or `playwright-report-full`) for 30 days. Traces, screenshots, and videos are inside that zip. Download it, unzip, then open with `npx playwright show-report`.
 
