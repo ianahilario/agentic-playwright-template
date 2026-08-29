@@ -1,0 +1,14 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 08:00 Hong Kong time
+  workflow_dispatch:
+
+jobs:
+  full-suite:
+    name: Full test suite
+    uses: ./.github/workflows/run-playwright-tests.yml
+    with:
+      suite: full
+    secrets: inherit

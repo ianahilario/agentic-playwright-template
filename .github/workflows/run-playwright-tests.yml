@@ -1,0 +1,36 @@
+name: Run Playwright tests
+
+on:
+  workflow_call:
+    inputs:
+      suite:
+        description: smoke or full
+        required: true
+        type: string
+
+jobs:
+  test:
+    continue-on-error: ${{ inputs.suite == 'smoke' }}
+    timeout-minutes: ${{ inputs.suite == 'full' && 120 || 60 }}
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      options: --user 1001
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write env file
+        env:
+          ENV_SECRET: ${{ secrets.ENV_SECRET }}
+        run: printf '%s\n' "$ENV_SECRET" > .env.secret
+      - name: Install dependencies
+        env:
+          HUSKY: '0'
+        run: npm ci
+      - name: Run Playwright tests
+        run: npx playwright test ${{ inputs.suite == 'smoke' && '--grep @smoke' || '' }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-${{ inputs.suite }}
+          path: playwright-report/
+          retention-days: 30
