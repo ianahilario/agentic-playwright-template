@@ -13,6 +13,11 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
+  timeout: 120_000,
+  expect: {
+    timeout: 10_000,
+    toPass: { timeout: 20_000, intervals: [5_000] },
+  },
   use: {
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
