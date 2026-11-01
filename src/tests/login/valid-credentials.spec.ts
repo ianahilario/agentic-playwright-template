@@ -9,10 +9,10 @@ test(
       story: 'able to log in',
     },
     actor: 'User',
-    expectedOutcome: 'is able to log in with a valid username and password',
+    expectedOutcome: 'The user is able to log in with a valid username and password',
     scenario: `GIVEN the sign-in screen is open
-WHEN the user signs in with a valid username and password
-THEN the products are displayed`,
+                WHEN the user signs in with a valid username and password
+                THEN the products are displayed`,
     viewport: 'all',
     isSmokeTest: true,
   },

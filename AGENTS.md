@@ -24,7 +24,6 @@ Read `memory-bank/TEST-AUTOMATION-STRATEGY.md` before deciding whether a test sh
 
 ### 4. Test Naming and Step Tone
 
-- Pass scenario fields to `test()` from `@/fixtures`. The report title is `[id] Feature > Actor > expected result`. `scenario` is three lines: `GIVEN`, `WHEN`, `THEN`. Outcome uses `is able` or `is unable`. Field rules are in `memory-bank/ARCHITECTURE.md`.
 - Step text stays user-facing (what the customer does or sees), not implementation details (how the test is coded).
 - Use "STEP-N:" for test.steps inside the spec files to make failures easier to reference when debugging.
 - Avoid technical phrasing in titles and steps (for example locator names, API methods, CSS selectors, internal variable names, or framework jargon).

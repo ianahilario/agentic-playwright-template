@@ -9,11 +9,11 @@ test(
       story: 'unable to log in',
     },
     actor: 'User',
-    expectedOutcome: 'is unable to log in with an empty password',
+    expectedOutcome: 'The user is unable to log in with an empty password',
     scenario: `GIVEN the sign-in screen is open
-WHEN the user signs in without a password
-THEN a password is required`,
-    viewport: 'all',
+                WHEN the user signs in without a password
+                THEN a password is required`,
+    viewport: 'desktop',
     isSmokeTest: false,
   },
   async ({ loginPage }) => {
@@ -22,7 +22,7 @@ THEN a password is required`,
     });
 
     await test.step('STEP-2: Sign in without a password', async () => {
-      await loginPage.login(standardUser.username, '');
+      await loginPage.login(standardUser.username, '', { expectError: true });
     });
 
     await test.step('STEP-3: A password is required', async () => {

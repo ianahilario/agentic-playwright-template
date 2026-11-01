@@ -9,11 +9,11 @@ test(
       story: 'unable to log in',
     },
     actor: 'User',
-    expectedOutcome: 'is unable to log in with a locked account',
+    expectedOutcome: 'The user is unable to log in with a locked account',
     scenario: `GIVEN the sign-in screen is open
-WHEN the user signs in with a locked account
-THEN the account stays locked`,
-    viewport: 'all',
+                WHEN the user signs in with a locked account
+                THEN the account stays locked`,
+    viewport: 'desktop',
     isSmokeTest: false,
   },
   async ({ loginPage }) => {
@@ -22,7 +22,7 @@ THEN the account stays locked`,
     });
 
     await test.step('STEP-2: Sign in with a locked account', async () => {
-      await loginPage.login(lockedOutUser.username, lockedOutUser.password);
+      await loginPage.login(lockedOutUser.username, lockedOutUser.password, { expectError: true });
     });
 
     await test.step('STEP-3: The account stays locked', async () => {
