@@ -96,13 +96,13 @@ This repo currently prefers the use of `playwright-cli` over `Playwright MCP` fo
 
 The `memory-bank` folder contains documents for the AI Agent's reference to have more context on how to write the tests and how to judge whether a test should exist.
 
-**Where humans come in:** When setting up the repo, the human should update the `memory-bank/TEST-AUTOMATION-STRATEGY.md` with the context of their app under test. Over time, continue to improve the memory bank so that the agent have the context it needs to perform well.
+**Where humans come in:** When setting up the repo, the human should update the `memory-bank/TEST-AUTOMATION-STRATEGY.md` with the context of their app under test. Over time, continue to improve the memory bank so that the agent has the context it needs to perform well.
 
 ### AI Code Review
 
-`.github/workflows/pr-review.yml` reviews a pull request with the Cursor CLI. It runs when PR is raised and ready for review.
+`.github/workflows/pr-review.yml` reviews a pull request with the Cursor CLI. It runs when a PR is raised and ready for review.
 
-It includes instructions to scan the changes and flag any violations on the defined hard/soft requirements. Any hard requirement validations will result to a failure. This enables fast feedback when PR is raised, and make sure the common and key rules not covered by static analysis is flagged.
+It includes instructions to scan the changes and flag any violations on the defined hard/soft requirements. Any hard requirement validations will result in a failure. This enables fast feedback when a PR is raised, and make sure the common and key rules not covered by static analysis are flagged.
 
 **Where humans come in:** Continue to iterate on the review instructions as needed. By covering nitpicky violations in the agent, the human can focus their review more on the test design, why we need the test, what it covers, and how it covers.
 
