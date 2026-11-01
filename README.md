@@ -54,9 +54,15 @@ playwright.config.ts     baseURL, projects, timeouts. testDir is ./src/tests
 
 ### CI
 
-GitHub Actions runs smoke on a push to `main` and on a non-draft pull request. The full suite runs nightly at 08:00 Hong Kong time. Each run uploads an HTML report artifact for 30 days. On a pull request, CI comments with the smoke counts: passed, failed, skipped, passed on retry, and total. The job writes `.env.secret` from the `USER_PASSWORD` repository secret.
+#### On pull request
 
-`npm run lint`, `npm run format`, and `npm run typecheck` are the checks Husky runs on commit. TypeScript is `strict`.
+Smoke test suite always runs when a pull request is raised for review. Once done, it will post a comment with the test run summary of passed, failed, skipped, passed on retry, and total test run count.
+
+When a test fails, the merge will be blocked.
+
+#### On schedule
+
+The full suite runs nightly at midnight Hong Kong time.
 
 ## What makes this agentic
 
