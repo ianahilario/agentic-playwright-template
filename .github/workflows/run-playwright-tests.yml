@@ -111,8 +111,12 @@ jobs:
 
             echo "Tests selected for this change:"
             cat "$list_file"
-            mapfile -t tests < "$list_file"
-            npx playwright test "${tests[@]}"
+            set --
+            while IFS= read -r test || [ -n "$test" ]; do
+              [ -n "$test" ] || continue
+              set -- "$@" "$test"
+            done < "$list_file"
+            npx playwright test "$@"
           fi
       - name: Publish test counts
         id: summary
