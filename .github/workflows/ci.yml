@@ -17,6 +17,7 @@ jobs:
     uses: ./.github/workflows/run-playwright-tests.yml
     with:
       suite: smoke
+      fail-on-test-failure: true
     secrets: inherit
 
   summary:
