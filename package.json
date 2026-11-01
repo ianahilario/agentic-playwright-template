@@ -5,6 +5,7 @@
   "scripts": {
     "test": "playwright test --ui",
     "test:smoke": "playwright test --grep @smoke",
+    "test:changed": "node scripts/open-changed-specs-ui.cjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -37,6 +38,7 @@
     "globals": "^17.11.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
+    "playwright-smart-runner": "^0.1.1",
     "prettier": "^3.9.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.68.0"

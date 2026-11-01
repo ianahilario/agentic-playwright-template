@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       suite:
-        description: smoke or full
+        description: smoke, changed, or full
         required: true
         type: string
       fail-on-test-failure:
@@ -36,11 +36,12 @@ on:
   workflow_dispatch:
     inputs:
       suite:
-        description: smoke or full test suite
+        description: smoke, changed, or full test suite
         required: true
         type: choice
         options:
           - smoke
+          - changed
           - full
       fail-on-test-failure:
         description: Fail the run when Playwright does not pass
@@ -67,6 +68,8 @@ jobs:
       tests_failed: ${{ steps.playwright.outcome == 'failure' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ inputs.suite == 'changed' && '0' || '1' }}
       - name: Write env file
         env:
           USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
@@ -78,7 +81,39 @@ jobs:
       - name: Run Playwright tests
         id: playwright
         continue-on-error: true
-        run: npx playwright test ${{ inputs.suite == 'smoke' && '--grep @smoke' || '' }}
+        env:
+          SUITE: ${{ inputs.suite }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ "$SUITE" = "smoke" ]; then
+            npx playwright test --grep @smoke
+          elif [ "$SUITE" != "changed" ]; then
+            npx playwright test
+          else
+            if [ -n "$BASE_REF" ]; then
+              base="origin/${BASE_REF}"
+            elif [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+              base="$BEFORE_SHA"
+            else
+              base="origin/${DEFAULT_BRANCH:-main}"
+            fi
+
+            list_file="$(mktemp)"
+            npx playwright-smart-runner --list --base "$base" > "$list_file"
+            if [ ! -s "$list_file" ]; then
+              mkdir -p test-results
+              printf '%s\n' '{"stats":{"expected":0,"unexpected":0,"skipped":0,"flaky":0}}' > test-results/results.json
+              echo "No changed tests to run." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+
+            echo "Tests selected for this change:"
+            cat "$list_file"
+            mapfile -t tests < "$list_file"
+            npx playwright test "${tests[@]}"
+          fi
       - name: Publish test counts
         id: summary
         if: always()
