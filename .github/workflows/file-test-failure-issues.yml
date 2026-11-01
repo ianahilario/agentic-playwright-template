@@ -17,6 +17,11 @@ on:
         description: Artifact that contains the Playwright results.json file
         required: true
         type: string
+      traces-artifact:
+        description: Artifact that contains trace.zip files from failed tests
+        required: false
+        type: string
+        default: ''
       run-name:
         description: Run name stored on the issue. Defaults to the workflow name.
         required: false
@@ -47,6 +52,7 @@ jobs:
       SOURCE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       SOURCE_SHA: ${{ github.sha }}
       SOURCE_RUN_NAME: ${{ inputs['run-name'] != '' && inputs['run-name'] || github.workflow }}
+      TRACES_ARTIFACT: ${{ inputs.traces-artifact }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

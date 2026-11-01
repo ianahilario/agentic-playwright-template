@@ -158,6 +158,66 @@ function outcomeOf(status) {
   return 'skipped';
 }
 
+function relativeTrace(filePath) {
+  const normalized = String(filePath || '').replaceAll('\\', '/');
+  const marker = 'test-results/';
+  const index = normalized.lastIndexOf(marker);
+  if (index === -1) return '';
+  const relative = normalized
+    .slice(index + marker.length)
+    .replace(/^\/+/, '')
+    .replace(/\/{2,}/g, '/');
+  if (!relative || relative.split('/').includes('..') || !relative.endsWith('trace.zip')) return '';
+  return relative;
+}
+
+function tracePaths(results) {
+  const found = [];
+  for (const result of results || []) {
+    const attachments = result && Array.isArray(result.attachments) ? result.attachments : [];
+    for (const attachment of attachments) {
+      const filePath = attachment && typeof attachment.path === 'string' ? attachment.path : '';
+      const name = attachment && typeof attachment.name === 'string' ? attachment.name : '';
+      const normalized = filePath.replaceAll('\\', '/');
+      if (name !== 'trace' && !normalized.endsWith('/trace.zip')) continue;
+      const relative = relativeTrace(filePath);
+      if (relative && !found.includes(relative)) found.push(relative);
+    }
+  }
+  return found;
+}
+
+function traceLines(group) {
+  const lines = [];
+  const seen = new Set();
+  for (const test of group.tests || []) {
+    for (const file of Array.isArray(test.traces) ? test.traces : []) {
+      if (seen.has(file)) continue;
+      seen.add(file);
+      const project = test.projectName ? ` (${test.projectName})` : '';
+      lines.push(`- \`${file}\`${project}`);
+    }
+  }
+  return lines;
+}
+
+function traceSection(group, trace) {
+  const lines = traceLines(group);
+  if (!lines.length) return '';
+  const out = ['### Trace', ''];
+  const artifact = trace && trace.artifact;
+  if (artifact && artifact.url && artifact.name) {
+    out.push(
+      `Download [${artifact.name}](${artifact.url}). The paths below are inside that zip. GitHub keeps it for 30 days.`,
+      '',
+    );
+  } else if (trace && trace.runUrl) {
+    out.push(`The trace zip is on the [test run](${trace.runUrl}) for 30 days.`, '');
+  }
+  out.push(...lines);
+  return out.join('\n').trim();
+}
+
 function recordFromTest(test, info) {
   const projectName = test && typeof test.projectName === 'string' ? test.projectName : 'unknown';
   const results = test && Array.isArray(test.results) ? test.results : [];
@@ -182,6 +242,7 @@ function recordFromTest(test, info) {
     retry: Number.isInteger(last.retry) ? last.retry : 0,
     lastFailedAt: formatSgt(last.startTime) || info.launchStartedAt,
     message: stripAnsi(rawError).trim().slice(0, 800),
+    traces: tracePaths(results),
     outcome,
     errorKey: outcome === 'failed' ? normalizeError(rawError) : '',
   };
@@ -225,6 +286,7 @@ function failureTest(record) {
     retry: record.retry,
     lastFailedAt: record.lastFailedAt,
     message: record.message,
+    traces: record.traces || [],
   };
 }
 
@@ -399,6 +461,7 @@ function buildPrompt(dir) {
     'new-groups.json lists failures that have no open issue yet.',
     'existing-groups.json lists failures that already belong to an open issue. Use issueNumber from that file.',
     'Timestamps are already in SGT. Copy them as written.',
+    'Do not mention trace files or download links. The workflow adds them.',
     '',
     'Return one JSON object and nothing else. No markdown fence. No commentary.',
     'The object must use this shape:',
@@ -570,15 +633,18 @@ function fitBody(human, machine) {
   return `${human.slice(0, room).trim()}\n\n_The rest of this issue text was cut to fit GitHub's limit._${suffix}`;
 }
 
-function withMachineBlock(body, group, runId) {
-  return fitBody(ensureTimes(stripMachineComments(body), group), machineBlock(group, runId));
+function withMachineBlock(body, group, runId, traceNote = '') {
+  let human = ensureTimes(stripMachineComments(body), group);
+  if (traceNote) human = `${human}\n\n${traceNote}`;
+  return fitBody(human, machineBlock(group, runId));
 }
 
-function withRunMarker(comment, group, runId) {
+function withRunMarker(comment, group, runId, traceNote = '') {
   let human = stripMachineComments(comment);
   if (!human.includes('Seen again')) {
     human = `**Seen again** on ${group.lastFailedAt}.\n\n${human}`.trim();
   }
+  if (traceNote) human = `${human}\n\n${traceNote}`;
   return `${human}\n\n${runMarker(runId)}\n`;
 }
 
@@ -667,6 +733,7 @@ function planApply({
   customLabels,
   assignee,
   bodies,
+  trace,
 }) {
   const extraLabels = customLabels || [];
   const assignees = assignee ? [assignee] : [];
@@ -723,10 +790,11 @@ function planApply({
     if (!title) throw new Error(`create ${group.groupId} is missing a title`);
     if (!body) throw new Error(`create ${group.groupId} is missing a body`);
     if (!group.tests.length) throw new Error(`group ${group.groupId} has no tests`);
+    const traceNote = traceSection(group, trace);
     creates.push({
       groupId: group.groupId,
       title,
-      body: withMachineBlock(body, group, runId),
+      body: withMachineBlock(body, group, runId, traceNote),
       labels: labelsFor(group, hypothesisOf(created), extraLabels),
       assignees,
     });
@@ -742,10 +810,11 @@ function planApply({
       );
     }
     const current = bodies.get(group.issueNumber) || '';
+    const traceNote = traceSection(group, trace);
     updates.push({
       groupId: group.groupId,
       issueNumber: group.issueNumber,
-      comment: withRunMarker(comment, group, runId),
+      comment: withRunMarker(comment, group, runId, traceNote),
       body: updateIssueBody(current, { lastFailedAt: group.lastFailedAt, runId }),
       labels: issueLabels(extraLabels),
       assignees,
@@ -899,6 +968,31 @@ function ghRepo(args) {
   return [...args, '--repo', requireEnv('GITHUB_REPOSITORY')];
 }
 
+function findTraceArtifact(runId, name) {
+  const artifactName = String(name || '').trim();
+  if (!artifactName || !runId) return null;
+  const server = process.env.GITHUB_SERVER_URL || 'https://github.com';
+  const repo = requireEnv('GITHUB_REPOSITORY');
+  const output = runGh([
+    'api',
+    '--paginate',
+    `repos/${repo}/actions/runs/${runId}/artifacts?per_page=100`,
+    '--jq',
+    '.artifacts[] | {id: (.id | tostring), name, expired}',
+  ]);
+  for (const line of String(output || '').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const item = JSON.parse(trimmed);
+    if (!item || item.name !== artifactName || item.expired || !item.id) continue;
+    return {
+      name: artifactName,
+      url: `${server}/${repo}/actions/runs/${runId}/artifacts/${item.id}`,
+    };
+  }
+  return null;
+}
+
 function listOpenIssues(label) {
   const repo = requireEnv('GITHUB_REPOSITORY');
   const route = `repos/${repo}/issues?state=open&labels=${encodeURIComponent(label)}&per_page=100`;
@@ -1012,8 +1106,19 @@ function applyCommand() {
   const existingFile = readJson(path.join(dir, 'existing-groups.json'));
   const newGroups = createdFile.groups || [];
   const existingGroups = existingFile.groups || [];
-  const runId = String((createdFile.launch || existingFile.launch || {}).id || '');
+  const launch = createdFile.launch || existingFile.launch || {};
+  const runId = String(launch.id || '');
   if (!runId) throw new Error('grouped failures have no run id');
+
+  let traceArtifact = null;
+  let traceError = '';
+  try {
+    traceArtifact = findTraceArtifact(runId, process.env.TRACES_ARTIFACT);
+  } catch (error) {
+    traceError = error instanceof Error ? error.message : String(error);
+  }
+  const trace = { runUrl: launch.url || '', artifact: traceArtifact };
+  const wantsTrace = [...newGroups, ...existingGroups].some((group) => traceLines(group).length);
 
   const bodies = new Map();
   for (const group of existingGroups) {
@@ -1032,6 +1137,7 @@ function applyCommand() {
     customLabels: parseLabelList(process.env.ISSUE_LABELS),
     assignee: parseAssignee(process.env.ISSUE_ASSIGNEE),
     bodies,
+    trace,
   });
 
   const labelNames = new Set([
@@ -1042,6 +1148,10 @@ function applyCommand() {
 
   note('### Issue updates');
   note('');
+  if (traceError) note(`- Could not look up the trace artifact: ${traceError}`);
+  else if (wantsTrace && process.env.TRACES_ARTIFACT && !traceArtifact) {
+    note(`- Trace artifact ${process.env.TRACES_ARTIFACT} was not on this run`);
+  }
   for (const item of plan.creates) {
     const stdout = withTempFile(item.body, (file) => {
       const args = ['issue', 'create', '--title', item.title, '--body-file', file];

@@ -205,6 +205,36 @@ jobs:
           path: test-results/results.json
           if-no-files-found: warn
           retention-days: 30
+      - name: Collect failure traces
+        id: traces
+        if: ${{ !cancelled() && steps.summary.outputs.failed != '0' }}
+        run: |
+          set -euo pipefail
+          mkdir -p playwright-traces
+          found=0
+          if [ -d test-results ]; then
+            while IFS= read -r file; do
+              [ -n "$file" ] || continue
+              rel="${file#test-results/}"
+              dest="playwright-traces/$rel"
+              mkdir -p "$(dirname "$dest")"
+              cp "$file" "$dest"
+              found=1
+            done < <(find test-results -name trace.zip -type f | sort)
+          fi
+          if [ "$found" -eq 1 ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload failure traces
+        if: steps.traces.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ inputs.suite }}
+          path: playwright-traces/
+          if-no-files-found: ignore
+          retention-days: 30
 
   result:
     name: Test result
@@ -231,6 +261,7 @@ jobs:
     uses: ./.github/workflows/file-test-failure-issues.yml
     with:
       artifact: playwright-results-${{ inputs.suite }}
+      traces-artifact: playwright-traces-${{ inputs.suite }}
       assignee: ianahilario
       run-name: ${{ format('{0} {1}', github.workflow, inputs.suite) }}
     secrets:
