@@ -54,7 +54,7 @@ playwright.config.ts     baseURL, projects, timeouts. testDir is ./src/tests
 
 ### CI
 
-GitHub Actions runs smoke on a push to `main` and on a non-draft pull request. The full suite runs nightly at 08:00 Hong Kong time. Each run uploads an HTML report artifact for 30 days. The workflow still writes `.env.secret` from the older SleekFlow secret names. The sample suite reads `USER_PASSWORD`, so change that job before you treat CI as the source of truth.
+GitHub Actions runs smoke on a push to `main` and on a non-draft pull request. The full suite runs nightly at 08:00 Hong Kong time. Each run uploads an HTML report artifact for 30 days. On a pull request, CI comments with the smoke counts: passed, failed, skipped, passed on retry, and total. The job writes `.env.secret` from the `USER_PASSWORD` repository secret.
 
 `npm run lint`, `npm run format`, and `npm run typecheck` are the checks Husky runs on commit. TypeScript is `strict`.
 

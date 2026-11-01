@@ -7,14 +7,27 @@ on:
         description: smoke or full
         required: true
         type: string
+    outputs:
+      passed:
+        description: Tests that passed without a retry
+        value: ${{ jobs.test.outputs.passed }}
+      failed:
+        description: Tests that failed
+        value: ${{ jobs.test.outputs.failed }}
+      skipped:
+        description: Tests that were skipped
+        value: ${{ jobs.test.outputs.skipped }}
+      flaky:
+        description: Tests that failed and then passed on retry
+        value: ${{ jobs.test.outputs.flaky }}
+      total:
+        description: Passed, failed, skipped, and flaky tests
+        value: ${{ jobs.test.outputs.total }}
+      report_found:
+        description: true when Playwright wrote the JSON report
+        value: ${{ jobs.test.outputs.report_found }}
     secrets:
-      USER_DEFAULT_EMAIL:
-        required: true
-      USER_DEFAULT_PASSWORD:
-        required: true
-      USER_SIGNUP_EMAIL:
-        required: true
-      USER_SIGNUP_PASSWORD:
+      USER_PASSWORD:
         required: true
   workflow_dispatch:
     inputs:
@@ -28,36 +41,125 @@ on:
 
 jobs:
   test:
+    name: Run Playwright
+    # Smoke stays green for the caller when setup fails. Test failures are
+    # recorded below and enforced by the result job, because a failed job
+    # does not return outputs to the caller.
     continue-on-error: ${{ inputs.suite == 'smoke' }}
     timeout-minutes: ${{ inputs.suite == 'full' && 120 || 60 }}
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.62.1-noble
       options: --user 1001
+    outputs:
+      passed: ${{ steps.summary.outputs.passed }}
+      failed: ${{ steps.summary.outputs.failed }}
+      skipped: ${{ steps.summary.outputs.skipped }}
+      flaky: ${{ steps.summary.outputs.flaky }}
+      total: ${{ steps.summary.outputs.total }}
+      report_found: ${{ steps.summary.outputs.report_found }}
+      tests_failed: ${{ steps.playwright.outcome == 'failure' }}
     steps:
       - uses: actions/checkout@v4
       - name: Write env file
         env:
-          USER_DEFAULT_EMAIL: ${{ secrets.USER_DEFAULT_EMAIL }}
-          USER_DEFAULT_PASSWORD: ${{ secrets.USER_DEFAULT_PASSWORD }}
-          USER_SIGNUP_EMAIL: ${{ secrets.USER_SIGNUP_EMAIL }}
-          USER_SIGNUP_PASSWORD: ${{ secrets.USER_SIGNUP_PASSWORD }}
-        run: |
-          {
-            printf 'USER_DEFAULT_EMAIL=%s\n' "$USER_DEFAULT_EMAIL"
-            printf 'USER_DEFAULT_PASSWORD=%s\n' "$USER_DEFAULT_PASSWORD"
-            printf 'USER_SIGNUP_EMAIL=%s\n' "$USER_SIGNUP_EMAIL"
-            printf 'USER_SIGNUP_PASSWORD=%s\n' "$USER_SIGNUP_PASSWORD"
-          } > .env.secret
+          USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+        run: printf 'USER_PASSWORD=%s\n' "$USER_PASSWORD" > .env.secret
       - name: Install dependencies
         env:
           HUSKY: '0'
         run: npm ci
       - name: Run Playwright tests
+        id: playwright
+        continue-on-error: true
         run: npx playwright test ${{ inputs.suite == 'smoke' && '--grep @smoke' || '' }}
+      - name: Publish test counts
+        id: summary
+        if: always()
+        run: |
+          node <<'EOF'
+          const fs = require('node:fs');
+
+          const reportPath = 'test-results/results.json';
+          const lines = [];
+
+          function add(name, value) {
+            lines.push(`${name}=${value}`);
+          }
+
+          function writeSummary(markdown) {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, markdown);
+          }
+
+          let stats;
+          try {
+            stats = JSON.parse(fs.readFileSync(reportPath, 'utf8')).stats;
+          } catch {
+            stats = undefined;
+          }
+
+          if (!stats) {
+            add('passed', '0');
+            add('failed', '0');
+            add('skipped', '0');
+            add('flaky', '0');
+            add('total', '0');
+            add('report_found', 'false');
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `${lines.join('\n')}\n`);
+            writeSummary('Playwright did not write a JSON report.\n');
+            process.exit(0);
+          }
+
+          function num(value) {
+            return Number.isInteger(value) ? value : 0;
+          }
+
+          const passed = num(stats.expected);
+          const failed = num(stats.unexpected);
+          const skipped = num(stats.skipped);
+          const flaky = num(stats.flaky);
+          const total = passed + failed + skipped + flaky;
+
+          add('passed', String(passed));
+          add('failed', String(failed));
+          add('skipped', String(skipped));
+          add('flaky', String(flaky));
+          add('total', String(total));
+          add('report_found', 'true');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `${lines.join('\n')}\n`);
+
+          writeSummary(
+            [
+              '### Playwright',
+              '',
+              '| Result | Count |',
+              '| --- | ---: |',
+              `| Passed | ${passed} |`,
+              `| Failed | ${failed} |`,
+              `| Skipped | ${skipped} |`,
+              `| Passed on retry | ${flaky} |`,
+              `| Total | ${total} |`,
+              '',
+            ].join('\n'),
+          );
+          EOF
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: playwright-report-${{ inputs.suite }}
           path: playwright-report/
+          if-no-files-found: warn
           retention-days: 30
+
+  result:
+    name: Test result
+    needs: test
+    if: always() && needs.test.result != 'cancelled'
+    continue-on-error: ${{ inputs.suite == 'smoke' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail when tests fail
+        if: needs.test.result != 'success' || needs.test.outputs.tests_failed == 'true' || needs.test.outputs.report_found != 'true'
+        run: |
+          echo "::error::passed=${{ needs.test.outputs.passed }} failed=${{ needs.test.outputs.failed }} skipped=${{ needs.test.outputs.skipped }} flaky=${{ needs.test.outputs.flaky }} report_found=${{ needs.test.outputs.report_found }}"
+          exit 1

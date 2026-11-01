@@ -18,3 +18,72 @@ jobs:
     with:
       suite: smoke
     secrets: inherit
+
+  summary:
+    name: Comment test summary
+    needs: smoke
+    if: always() && github.event_name == 'pull_request' && needs.smoke.result != 'skipped' && needs.smoke.result != 'cancelled'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post or update the pull request comment
+        uses: actions/github-script@v7
+        env:
+          PASSED: ${{ needs.smoke.outputs.passed }}
+          FAILED: ${{ needs.smoke.outputs.failed }}
+          SKIPPED: ${{ needs.smoke.outputs.skipped }}
+          FLAKY: ${{ needs.smoke.outputs.flaky }}
+          TOTAL: ${{ needs.smoke.outputs.total }}
+          REPORT_FOUND: ${{ needs.smoke.outputs.report_found }}
+        with:
+          script: |
+            const marker = '<!-- playwright-smoke-summary -->';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            function count(value) {
+              return /^\d+$/.test(value || '') ? value : '0';
+            }
+
+            const details =
+              process.env.REPORT_FOUND === 'true'
+                ? [
+                    '| Result | Count |',
+                    '| --- | ---: |',
+                    `| Passed | ${count(process.env.PASSED)} |`,
+                    `| Failed | ${count(process.env.FAILED)} |`,
+                    `| Skipped | ${count(process.env.SKIPPED)} |`,
+                    `| Passed on retry | ${count(process.env.FLAKY)} |`,
+                    `| Total | ${count(process.env.TOTAL)} |`,
+                  ].join('\n')
+                : 'Playwright did not write a report for this run.';
+
+            const body = `${marker}\n### Smoke tests\n\n${details}\n\n[View the run](${runUrl})\n`;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.find(
+              (comment) =>
+                comment.user?.login === 'github-actions[bot]' && comment.body?.includes(marker),
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
