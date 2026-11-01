@@ -2,7 +2,8 @@ name: Nightly
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 08:00 Hong Kong time
+    - cron: '0 0 * * *'
+      timezone: Asia/Hong_Kong
 
 jobs:
   full-suite:
