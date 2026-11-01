@@ -7,9 +7,12 @@ const {
   collectFromReport,
   decideClosures,
   formatSgt,
+  issueLabels,
   normalizeError,
+  parseAssignee,
   parseCursorOutput,
   parseGhList,
+  parseLabelList,
   planApply,
   splitGroups,
   updateIssueBody,
@@ -316,8 +319,8 @@ test('builds an issue plan from Cursor JSON and preserves the original first fai
     newGroups: [group],
     existingGroups: [existing],
     runId: '99',
-    label: 'playwright-failure',
-    assignees: ['ianahilario'],
+    customLabels: ['area:login'],
+    assignee: 'ianahilario',
     bodies: new Map([
       [
         4,
@@ -332,8 +335,14 @@ test('builds an issue plan from Cursor JSON and preserves the original first fai
   });
 
   assert.equal(plan.creates[0].title, 'Login > wrong password is rejected');
-  assert.ok(plan.creates[0].labels.includes('hypothesis:application_bug'));
-  assert.ok(plan.creates[0].labels.includes('project:desktop-chrome'));
+  assert.deepEqual(plan.creates[0].labels, [
+    'test-triage',
+    'area:login',
+    'hypothesis:application_bug',
+    'project:desktop-chrome',
+  ]);
+  assert.deepEqual(plan.updates[0].labels, ['test-triage', 'area:login']);
+  assert.deepEqual(plan.updates[0].assignees, ['ianahilario']);
   assert.match(plan.creates[0].body, /First failed: 2026-11-01 22:34:00 SGT/);
   assert.match(
     plan.creates[0].body,
@@ -367,8 +376,7 @@ test('rejects a skipped group that has a real error', () => {
         ],
         existingGroups: [],
         runId: '99',
-        label: 'playwright-failure',
-        assignees: [],
+        assignee: '',
         bodies: new Map(),
       }),
     /only allowed when the error is unknown/,
@@ -438,6 +446,19 @@ test('inserts the latest failure without changing the first one', () => {
   });
   assert.match(body, /First failed: 2026-10-01 10:00:00 SGT\nLast failed: 2026-11-01 22:34:00 SGT/);
   assert.match(body, /<!-- playwright-run: 99 -->/);
+});
+
+test('always applies test-triage and keeps one copy of each extra label', () => {
+  assert.deepEqual(issueLabels([]), ['test-triage']);
+  assert.deepEqual(issueLabels(['test-triage', 'nightly', 'nightly']), ['test-triage', 'nightly']);
+  assert.deepEqual(issueLabels(['nightly'], ['project:desktop-chrome']), [
+    'test-triage',
+    'nightly',
+    'project:desktop-chrome',
+  ]);
+  assert.deepEqual(parseLabelList(' test-triage, nightly , ,nightly '), ['nightly']);
+  assert.equal(parseAssignee(' @ianahilario '), 'ianahilario');
+  assert.equal(parseAssignee(''), '');
 });
 
 test('tells Cursor to return JSON and not call gh', () => {

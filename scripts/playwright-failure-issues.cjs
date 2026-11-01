@@ -8,7 +8,9 @@ const path = require('node:path');
 
 const HYPOTHESES = ['application_bug', 'test_code_issue', 'environment_issue'];
 const MAX_BODY = 65000;
+const TRIAGE_LABEL = 'test-triage';
 const LABEL_META = {
+  'test-triage': ['B60205', 'Failed test that needs triage'],
   'playwright-failure': ['B60205', 'Failed Playwright test'],
   'hypothesis:application_bug': ['D73A4A', 'Tentative: application bug'],
   'hypothesis:test_code_issue': ['0075CA', 'Tentative: test code issue'],
@@ -23,10 +25,6 @@ function requireEnv(name) {
 
 function workDir() {
   return process.env.WORK_DIR || 'playwright-failure-issues';
-}
-
-function issueLabel() {
-  return process.env.ISSUE_LABEL || 'playwright-failure';
 }
 
 function maxGroups() {
@@ -621,22 +619,57 @@ function updateIssueBody(body, { lastFailedAt, runId }) {
   return `${updated.join('\n')}\n`;
 }
 
-function labelsFor(group, hypothesis, label) {
-  const labels = [label];
-  if (hypothesis) labels.push(`hypothesis:${hypothesis}`);
-  const projects = [...new Set(group.tests.map((test) => test.projectName).filter(Boolean))].sort();
-  for (const project of projects) labels.push(`project:${project}`);
+function parseAssignee(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^@/, '');
+}
+
+function parseLabelList(value) {
+  const names = [];
+  for (const part of String(value || '').split(',')) {
+    const name = part.trim();
+    if (!name || name === TRIAGE_LABEL || names.includes(name)) continue;
+    names.push(name);
+  }
+  return names;
+}
+
+function assertTriageLabel() {
+  if (process.env.TRIAGE_LABEL !== TRIAGE_LABEL) {
+    throw new Error(`TRIAGE_LABEL must stay ${TRIAGE_LABEL}.`);
+  }
+}
+
+function issueLabels(customLabels, extra = []) {
+  const labels = [TRIAGE_LABEL];
+  for (const name of [...(customLabels || []), ...extra]) {
+    const trimmed = String(name || '').trim();
+    if (!trimmed || labels.includes(trimmed)) continue;
+    labels.push(trimmed);
+  }
   return labels;
 }
 
-function parseAssignees(value) {
-  return String(value || '')
-    .split(',')
-    .map((part) => part.trim().replace(/^@/, ''))
-    .filter(Boolean);
+function labelsFor(group, hypothesis, customLabels) {
+  const extra = [];
+  if (hypothesis) extra.push(`hypothesis:${hypothesis}`);
+  const projects = [...new Set(group.tests.map((test) => test.projectName).filter(Boolean))].sort();
+  for (const project of projects) extra.push(`project:${project}`);
+  return issueLabels(customLabels, extra);
 }
 
-function planApply({ structured, newGroups, existingGroups, runId, label, assignees, bodies }) {
+function planApply({
+  structured,
+  newGroups,
+  existingGroups,
+  runId,
+  customLabels,
+  assignee,
+  bodies,
+}) {
+  const extraLabels = customLabels || [];
+  const assignees = assignee ? [assignee] : [];
   const errors = [];
   const create = indexItems(structured.create, 'create', errors);
   const update = indexItems(structured.update, 'update', errors);
@@ -694,7 +727,7 @@ function planApply({ structured, newGroups, existingGroups, runId, label, assign
       groupId: group.groupId,
       title,
       body: withMachineBlock(body, group, runId),
-      labels: labelsFor(group, hypothesisOf(created), label),
+      labels: labelsFor(group, hypothesisOf(created), extraLabels),
       assignees,
     });
   }
@@ -714,6 +747,8 @@ function planApply({ structured, newGroups, existingGroups, runId, label, assign
       issueNumber: group.issueNumber,
       comment: withRunMarker(comment, group, runId),
       body: updateIssueBody(current, { lastFailedAt: group.lastFailedAt, runId }),
+      labels: issueLabels(extraLabels),
+      assignees,
     });
   }
 
@@ -923,12 +958,12 @@ function runContext() {
 }
 
 function collectCommand() {
+  assertTriageLabel();
   const dir = workDir();
   const reportPath = process.env.REPORT_PATH || path.join(dir, 'results.json');
   if (!fs.existsSync(reportPath)) throw new Error(`JSON report not found at ${reportPath}`);
   const payload = collectFromReport(readJson(reportPath), runContext(), { maxGroups: maxGroups() });
-  const label = issueLabel();
-  const issues = listOpenIssues(label);
+  const issues = listOpenIssues(TRIAGE_LABEL);
   const split = splitGroups(payload, issues);
   fs.mkdirSync(dir, { recursive: true });
   writeJson(path.join(dir, 'failures.json'), payload);
@@ -966,6 +1001,7 @@ function collectCommand() {
 }
 
 function applyCommand() {
+  assertTriageLabel();
   const dir = workDir();
   const agentPath = path.join(dir, 'agent.json');
   if (!fs.existsSync(agentPath)) throw new Error(`Cursor output not found at ${agentPath}`);
@@ -993,12 +1029,15 @@ function applyCommand() {
     newGroups,
     existingGroups,
     runId,
-    label: issueLabel(),
-    assignees: parseAssignees(process.env.PLAYWRIGHT_FAILURE_ASSIGNEES),
+    customLabels: parseLabelList(process.env.ISSUE_LABELS),
+    assignee: parseAssignee(process.env.ISSUE_ASSIGNEE),
     bodies,
   });
 
-  const labelNames = new Set(plan.creates.flatMap((item) => item.labels));
+  const labelNames = new Set([
+    ...plan.creates.flatMap((item) => item.labels),
+    ...plan.updates.flatMap((item) => item.labels),
+  ]);
   for (const name of labelNames) ensureLabel(name);
 
   note('### Issue updates');
@@ -1021,7 +1060,10 @@ function applyCommand() {
     });
     if (!edited.has(item.issueNumber)) {
       withTempFile(item.body, (file) => {
-        runGh(ghRepo(['issue', 'edit', String(item.issueNumber), '--body-file', file]));
+        const args = ['issue', 'edit', String(item.issueNumber), '--body-file', file];
+        for (const label of item.labels) args.push('--add-label', label);
+        for (const person of item.assignees) args.push('--add-assignee', person);
+        runGh(ghRepo(args));
       });
       edited.add(item.issueNumber);
     }
@@ -1035,11 +1077,12 @@ function applyCommand() {
 }
 
 function closeCommand() {
+  assertTriageLabel();
   const dir = workDir();
   const failuresPath = path.join(dir, 'failures.json');
   if (!fs.existsSync(failuresPath)) throw new Error(`failures.json not found at ${failuresPath}`);
   const payload = readJson(failuresPath);
-  const issues = listOpenIssues(issueLabel());
+  const issues = listOpenIssues(TRIAGE_LABEL);
   const decision = decideClosures(payload, issues);
   const comment = closeComment(payload.launch || {});
   for (const issue of decision.toClose) {
@@ -1080,9 +1123,12 @@ module.exports = {
   collectFromReport,
   decideClosures,
   formatSgt,
+  issueLabels,
   normalizeError,
+  parseAssignee,
   parseCursorOutput,
   parseGhList,
+  parseLabelList,
   planApply,
   splitGroups,
   updateIssueBody,

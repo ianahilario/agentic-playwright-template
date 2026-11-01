@@ -1,0 +1,146 @@
+name: File test failure issues
+
+on:
+  workflow_call:
+    inputs:
+      assignee:
+        description: GitHub username assigned to each opened or updated issue
+        required: false
+        type: string
+        default: ''
+      custom-labels:
+        description: Extra labels, comma-separated. Every issue also gets test-triage.
+        required: false
+        type: string
+        default: ''
+      artifact:
+        description: Artifact that contains the Playwright results.json file
+        required: true
+        type: string
+      suite:
+        description: Suffix for the triage artifact name, such as changed, smoke, or full
+        required: false
+        type: string
+        default: ''
+      run-name:
+        description: Run name stored on the issue. Defaults to the workflow name.
+        required: false
+        type: string
+        default: ''
+    secrets:
+      CURSOR_API_KEY:
+        required: false
+
+jobs:
+  file-issues:
+    name: File issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: write
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE_ASSIGNEE: ${{ inputs.assignee }}
+      ISSUE_LABELS: ${{ inputs['custom-labels'] }}
+      # Every opened or updated issue gets this label. The filing script rejects any other value.
+      TRIAGE_LABEL: test-triage
+      WORK_DIR: playwright-failure-issues
+      REPORT_PATH: playwright-failure-issues/results.json
+      SOURCE_RUN_ID: ${{ github.run_id }}
+      SOURCE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      SOURCE_SHA: ${{ github.sha }}
+      SOURCE_RUN_NAME: ${{ inputs['run-name'] != '' && inputs['run-name'] || github.workflow }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download the JSON report
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact }}
+          path: playwright-failure-issues
+
+      - name: Place the JSON report
+        run: |
+          set -euo pipefail
+          found="$(find playwright-failure-issues -name results.json -print -quit)"
+          if [ -z "$found" ]; then
+            echo "The test run did not upload results.json."
+            exit 1
+          fi
+          if [ "$found" != "playwright-failure-issues/results.json" ]; then
+            mv "$found" playwright-failure-issues/results.json
+          fi
+
+      - name: Collect failed tests
+        id: collect
+        run: node scripts/playwright-failure-issues.cjs collect
+
+      - name: Remove the raw JSON report
+        if: steps.collect.outcome == 'success'
+        run: rm -f playwright-failure-issues/results.json
+
+      - name: Check Cursor API key
+        if: success() && steps.collect.outputs.has-work == 'true'
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: |
+          set -euo pipefail
+          token="${CURSOR_API_KEY:-}"
+
+          if [ -z "$token" ]; then
+            echo "CURSOR_API_KEY is empty or unavailable."
+            exit 1
+          fi
+
+          if [[ "$token" =~ [[:space:]] ]]; then
+            echo "CURSOR_API_KEY contains whitespace."
+            echo "Re-save the secret as the raw key with no extra characters."
+            exit 1
+          fi
+
+          if [[ "$token" == *\"* || "$token" == *\'* ]]; then
+            echo "CURSOR_API_KEY contains quote characters."
+            echo "Re-save the secret without surrounding quotes."
+            exit 1
+          fi
+
+          echo "Cursor API key check passed."
+
+      - name: Install Cursor CLI
+        if: success() && steps.collect.outputs.has-work == 'true'
+        run: |
+          set -euo pipefail
+          curl https://cursor.com/install -fsS | bash
+          echo "$HOME/.cursor/bin" >> "$GITHUB_PATH"
+
+      - name: Run Cursor
+        id: cursor
+        if: success() && steps.collect.outputs.has-work == 'true'
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ''
+          GITHUB_TOKEN: ''
+        run: |
+          set -euo pipefail
+          agent -p --trust --mode ask --model auto --output-format json \
+            "$(cat playwright-failure-issues/prompt.md)" > playwright-failure-issues/agent.json
+
+      - name: Apply GitHub issue changes
+        if: success() && steps.collect.outputs.has-work == 'true'
+        run: node scripts/playwright-failure-issues.cjs apply
+
+      - name: Close resolved issues
+        if: always() && steps.collect.outcome == 'success'
+        run: node scripts/playwright-failure-issues.cjs close
+
+      - name: Upload triage files
+        if: always() && steps.collect.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ inputs.suite != '' && format('playwright-failure-triage-{0}', inputs.suite) || 'playwright-failure-triage' }}"
+          path: playwright-failure-issues
+          if-no-files-found: warn
+          retention-days: 30

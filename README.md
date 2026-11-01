@@ -88,7 +88,13 @@ The full suite runs nightly at midnight Hong Kong time.
 
 #### On main
 
-When a run on `main` has a failed test, those failures are grouped by error. Cursor writes a GitHub issue for a new group and comments on the open issue for a known group. In that same run, an issue is closed when every test listed on it passed without a retry. Open issues use the `playwright-failure` label. This uses the `CURSOR_API_KEY` secret. Set the `PLAYWRIGHT_FAILURE_ASSIGNEES` repository variable to a comma-separated list of GitHub usernames when new issues should have assignees.
+When a run on `main` has a failed test, those failures are grouped by error. Cursor writes a GitHub issue for a new group and comments on the open issue for a known group. In that same run, an issue is closed when every test listed on it passed without a retry. This uses the `CURSOR_API_KEY` secret.
+
+The Playwright workflow calls `.github/workflows/file-test-failure-issues.yml` to open, update, and close those issues. Another workflow can call it with the same inputs.
+
+`artifact` is the artifact that contains `results.json`. `assignee` is one GitHub username. This repository passes `ianahilario`. In a repository created from this template, set `assignee` to that repository's owner. `custom-labels` is a comma-separated list of extra labels.
+
+The workflow always applies `test-triage` on every issue it opens or updates, then adds the labels from `custom-labels`. A new issue also gets a hypothesis label and a project label when the grouped failure has them.
 
 ## What makes this agentic
 
