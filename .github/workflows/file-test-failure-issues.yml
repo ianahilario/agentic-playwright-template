@@ -24,7 +24,7 @@ on:
         default: ''
     secrets:
       CURSOR_API_KEY:
-        required: false
+        required: true
 
 jobs:
   file-issues:
