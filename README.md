@@ -1,27 +1,39 @@
 # Agentic Playwright template
 
-This repo writes and maintains a Playwright test suite with capabilities to be assisted by an AI agent.
+This is a template repository. It includes an AI-assisted Playwright test suite for writing and maintaining tests.
 
 The sample tests run against the demo site `www.saucedemo.com`.
 
 ## Getting started
 
+Create your own repository from this template, then install the tools and point the suite at your app.
+
 You need Git and a current Node.js LTS. npm ships with Node.
 
+On the GitHub page for this repository, select **Use this template**, then **Create a new repository**. Choose an owner and a name.
+
+Clone the repository you created.
+
 ```bash
-git clone https://github.com/ianahilario/agentic-playwright-template.git
-cd agentic-playwright-template
+git clone https://github.com/<owner>/<repo>.git
+cd <repo>
 npm ci
 npx playwright install --with-deps
 ```
 
 `npm ci` installs from `package-lock.json` and sets up Husky, so commits run lint and typecheck. `playwright install` downloads Chromium. `--with-deps` installs the OS libraries Playwright needs. That flag matters most on Linux.
 
-Copy the `.env.secret.example` file to a `.env.secret` file and set `USER_PASSWORD`. Swag Labs publishes the shared password.
+Copy the `.env.secret.example` file to a `.env.secret` file and set `USER_PASSWORD`. Swag Labs publishes the shared password. For your own app, put that app's password in the same file.
 
 ```bash
 cp .env.secret.example .env.secret
 ```
+
+Point the suite at your app before you replace the sample tests.
+
+- Rewrite `memory-bank/TEST-AUTOMATION-STRATEGY.md` so it describes your app, the risks you care about, and which cases the suite should skip.
+- Replace `src` with changes for your own app.
+- Prompt the agent to explore your app and create tests. If the app requires a sign-in, add at least one test that signs in first. The agent can then find the function that test uses to authenticate, and reuse it so later tests can get past sign-in.
 
 Open the Playwright UI and run a test from there. You can watch the browser while it runs.
 
@@ -78,15 +90,15 @@ The full suite runs nightly at midnight Hong Kong time.
 
 This repository has been set up with an AGENTS.md, skill files, and a memory bank which provides context on how the AI Agent should act.
 
-AGENTS.md and skill files are symlinked so it can work on different model providers.
+AGENTS.md and skill files are symlinked so they work with different model providers.
 
 ### AGENTS.md
 
-`AGENTS.md` focuses on high-level instructions on how the agent should interact with the browser, how to handle solutions, the tone it should write the tests with, and brief instruction pointing it to more context it needs.
+`AGENTS.md` focuses on high-level instructions on how the agent should interact with the browser, how to handle solutions, the tone it should write the tests with, and a brief instruction that points it toward the rest of the context it needs.
 
 ### Skills
 
-The skills here enable the AI Agent to better handle browser exploration and test healing. No test creation skill is needed as this repo already outlines the standards in `ARCHITECTURE.md` and has established the pattern to write the tests, page objects and such which the model can just follow.
+The skills here enable the AI Agent to better handle browser exploration and test healing. No test creation skill is needed as this repo already outlines the standards in `ARCHITECTURE.md` and has established the pattern for writing tests, page objects, and the rest, which the model can follow.
 
 ### Playwright CLI over MCP
 
@@ -94,7 +106,7 @@ This repo currently prefers the use of `playwright-cli` over `Playwright MCP` fo
 
 ### Memory Bank
 
-The `memory-bank` folder contains documents for the AI Agent's reference to have more context on how to write the tests and how to judge whether a test should exist.
+The `memory-bank` folder contains documents the AI agent can refer to for more context on how to write the tests and how to judge whether a test should exist.
 
 **Where humans come in:** When setting up the repo, the human should update the `memory-bank/TEST-AUTOMATION-STRATEGY.md` with the context of their app under test. Over time, continue to improve the memory bank so that the agent has the context it needs to perform well.
 
@@ -102,9 +114,9 @@ The `memory-bank` folder contains documents for the AI Agent's reference to have
 
 `.github/workflows/pr-review.yml` reviews a pull request with the Cursor CLI. It runs when a PR is raised and ready for review.
 
-It includes instructions to scan the changes and flag any violations on the defined hard/soft requirements. Any hard requirement validations will result in a failure. This enables fast feedback when a PR is raised, and make sure the common and key rules not covered by static analysis are flagged.
+It includes instructions to scan the changes and flag any violations of the defined hard and soft requirements. Any hard requirement validations will result in a failure. This enables fast feedback when a PR is raised, and makes sure the common and key rules not covered by static analysis are flagged.
 
-**Where humans come in:** Continue to iterate on the review instructions as needed. By covering nitpicky violations in the agent, the human can focus their review more on the test design, why we need the test, what it covers, and how it covers.
+**Where humans come in:** Continue to iterate on the review instructions as needed. By having the agent cover nitpicky violations, the human can focus their review more on the test design, why we need the test, what it covers, and how it covers.
 
 ### Example prompts
 
@@ -116,7 +128,7 @@ Add a test that a user can sort the catalog by price, low to high.
 
 The AI Agent would typically open the browser to explore the app and run the scenario via `playwright-cli`. Once it's satisfied, it should write the tests and add/update page objects as needed.
 
-**Where humans come in:** Verify if the created test is up to your standard since the prompt does not detail the steps for how you specifically want it to assert the scenario. Keep giving it instructions or edit it by yourself until the test is good.
+**Where humans come in:** Verify if the created test is up to your standard since the prompt does not detail the steps for how you specifically want it to assert the scenario. Keep giving it instructions, or edit it yourself, until the test is good.
 
 #### Test fixing and maintenance
 
@@ -124,8 +136,8 @@ The AI Agent would typically open the browser to explore the app and run the sce
 /diagnose-and-heal-test [test] failed with error [error details].
 ```
 
-**Where humans come in:** Same as creation, verify if the fixed test is up to your standard.
+**Where humans come in:** As with test creation, verify whether the fixed test is up to your standard.
 
 #### Always keep the human in the loop
 
-A green test is not a sign the test is good enough. Tests are now all the more important in this agentic era. Make sure it covers the risks you want to protect with solid assertions.
+A green test is not a sign the test is good enough. Tests are now all the more important in this agentic era. Make sure they cover the risks you want to guard against, with solid assertions.
