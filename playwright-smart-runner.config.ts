@@ -3,7 +3,13 @@ import { defineConfig } from 'playwright-smart-runner';
 export default defineConfig({
   testDir: './src/tests',
   baseBranch: 'main',
-  ignorePaths: ['**/*.md', '.cursor/**', '.claude/**', '.agents/**'],
+  ignorePaths: [
+    '**/*.md',
+    '.cursor/**',
+    '.claude/**',
+    '.agents/**',
+    '.github/workflows/pr-review.yml',
+  ],
   passWithNoMappedTest: true,
   runChangedTests: true,
   unmappedChangeRun: ['@smoke'],
