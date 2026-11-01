@@ -139,7 +139,7 @@ Smoke is small on purpose. Do not add validation, error, or edge-case specs. Do 
 
 ### Run changed tests
 
-`changed` is a CI suite option, not a tag. Do not add `@changed`. CI and `npm run test:changed` both start from `npx playwright-smart-runner --list`. CI runs that list. `npm run test:changed` opens the same list in the Playwright UI for `desktop-chrome` and `mobile-chrome`. The mapping is `playwright-smart-runner.config.ts`. A changed spec runs itself. A change to the sign-in page or the products page runs `src/tests/login/valid-credentials.spec.ts`. Any other relevant change runs `@smoke`. Markdown and the agent skill folders are ignored. A diff that only touches those paths runs nothing.
+`changed` is a CI suite option, not a tag. Do not add `@changed`. CI and `npm run test:changed` both start from `npx playwright-smart-runner --list`. CI runs that list. `npm run test:changed` opens the same list in the Playwright UI for `desktop-chrome` and `mobile-chrome`. The mapping is `playwright-smart-runner.config.ts`. A changed spec runs itself. A change to the sign-in page or the products page runs `src/tests/login/valid-credentials.spec.ts`. Any other relevant change runs `@smoke`. Markdown, the agent skill folders, and the Playwright code review workflow are ignored. A diff that only touches those paths runs nothing.
 
 ### Adding a tag
 
