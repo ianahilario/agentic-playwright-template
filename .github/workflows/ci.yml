@@ -88,3 +88,11 @@ jobs:
               issue_number: context.issue.number,
               body,
             });
+
+  failure-issue-script:
+    name: Failure issue script
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the failure issue script tests
+        run: node --test scripts/playwright-failure-issues.test.cjs

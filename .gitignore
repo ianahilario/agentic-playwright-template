@@ -9,3 +9,4 @@
 /playwright/.auth/
 /.playwright-cli/
 /.pr-review/
+/playwright-failure-issues/

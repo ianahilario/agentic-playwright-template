@@ -86,6 +86,10 @@ When a test fails, the merge is blocked.
 
 The full suite runs nightly at midnight Hong Kong time.
 
+#### On main
+
+When a run on `main` has a failed test, those failures are grouped by error. Cursor writes a GitHub issue for a new group and comments on the open issue for a known group. In that same run, an issue is closed when every test listed on it passed without a retry. Open issues use the `playwright-failure` label. This uses the `CURSOR_API_KEY` secret. Set the `PLAYWRIGHT_FAILURE_ASSIGNEES` repository variable to a comma-separated list of GitHub usernames when new issues should have assignees.
+
 ## What makes this agentic
 
 This repository has been set up with an AGENTS.md, skill files, and a memory bank which provides context on how the AI Agent should act.
@@ -118,9 +122,9 @@ It includes instructions to scan the changes and flag any violations of the defi
 
 **Where humans come in:** Continue to iterate on the review instructions as needed. By having the agent cover nitpicky violations, the human can focus their review more on the test design, why we need the test, what it covers, and how it covers.
 
-### Example prompts
+## Example prompts
 
-#### Test creation
+### Test creation
 
 ```text
 Add a test that a user can sort the catalog by price, low to high.
@@ -130,7 +134,7 @@ The AI Agent would typically open the browser to explore the app and run the sce
 
 **Where humans come in:** Verify if the created test is up to your standard since the prompt does not detail the steps for how you specifically want it to assert the scenario. Keep giving it instructions, or edit it yourself, until the test is good.
 
-#### Test fixing and maintenance
+### Test fixing and maintenance
 
 ```text
 /diagnose-and-heal-test [test] failed with error [error details].
