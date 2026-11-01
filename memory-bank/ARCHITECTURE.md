@@ -18,6 +18,10 @@ src/
   helpers/             Env checks and page-load waits. No locator strings.
   data/                Accounts, page URLs, tags, feature stories
 playwright.config.ts   Base URL, test id attribute, timeouts, projects. `testDir` is `./src/tests`
+playwright-smart-runner.config.ts
+                       Which tests the changed suite runs when a file changes
+scripts/open-changed-specs-ui.cjs
+                       Opens the Playwright UI for that changed list
 playwright/.auth/      Storage state (gitignored)
 ```
 
@@ -132,6 +136,10 @@ Smoke does not replace a viewport. It selects a subset of tests that already hav
 | `@smoke` | `npm run test:smoke` | The happy path that proves the product still opens after a deploy |
 
 Smoke is small on purpose. Do not add validation, error, or edge-case specs. Do not treat smoke as the full suite. The smoke spec is valid sign-in, `src/tests/login/valid-credentials.spec.ts`. The locked account, the empty fields, and the wrong password stay out of it.
+
+### Run changed tests
+
+`changed` is a CI suite option, not a tag. Do not add `@changed`. CI and `npm run test:changed` both start from `npx playwright-smart-runner --list`. CI runs that list. `npm run test:changed` opens the same list in the Playwright UI for `desktop-chrome` and `mobile-chrome`. The mapping is `playwright-smart-runner.config.ts`. A changed spec runs itself. A change to the sign-in page or the products page runs `src/tests/login/valid-credentials.spec.ts`. Any other relevant change runs `@smoke`. Markdown and the agent skill folders are ignored. A diff that only touches those paths runs nothing.
 
 ### Adding a tag
 

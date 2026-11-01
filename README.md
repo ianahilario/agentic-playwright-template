@@ -29,6 +29,12 @@ Open the Playwright UI and run a test from there. You can watch the browser whil
 npm test
 ```
 
+To open only the tests that match your changes since `main`:
+
+```bash
+npm run test:changed
+```
+
 ## Folder structure
 
 ```
@@ -50,15 +56,19 @@ CLAUDE.md                The same rules for Claude Code
 .claude/skills/          The same skills for Claude Code
 .agents/skills/          The same skills for other agents
 playwright.config.ts     baseURL, projects, timeouts. testDir is ./src/tests
+playwright-smart-runner.config.ts
+                         Which tests run for a changed file
+scripts/open-changed-specs-ui.cjs
+                         Opens the Playwright UI for that list
 ```
 
 ### CI
 
 #### On pull request
 
-Smoke test suite always runs when a pull request is raised for review. Once done, it will post a comment with the test run summary of passed, failed, skipped, passed on retry, and total test run count.
+The changed suite runs when a pull request is raised for review. `npx playwright-smart-runner --list` prints the tests that match the diff, and Playwright runs that list. The pull request comment shows passed, failed, skipped, passed on retry, and the total.
 
-When a test fails, the merge will be blocked.
+When a test fails, the merge is blocked.
 
 #### On schedule
 
