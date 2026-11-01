@@ -209,19 +209,22 @@ jobs:
         id: traces
         if: ${{ !cancelled() && steps.summary.outputs.failed != '0' }}
         run: |
-          set -euo pipefail
+          set -eu
           mkdir -p playwright-traces
-          found=0
+          list="$(mktemp)"
           if [ -d test-results ]; then
-            while IFS= read -r file; do
-              [ -n "$file" ] || continue
-              rel="${file#test-results/}"
-              dest="playwright-traces/$rel"
-              mkdir -p "$(dirname "$dest")"
-              cp "$file" "$dest"
-              found=1
-            done < <(find test-results -name trace.zip -type f | sort)
+            find test-results -name trace.zip -type f | sort > "$list"
           fi
+          found=0
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            rel="${file#test-results/}"
+            dest="playwright-traces/$rel"
+            mkdir -p "$(dirname "$dest")"
+            cp "$file" "$dest"
+            found=1
+          done < "$list"
+          rm -f "$list"
           if [ "$found" -eq 1 ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
