@@ -8,3 +8,4 @@
 /playwright/.cache/
 /playwright/.auth/
 /.playwright-cli/
+/.pr-review/
