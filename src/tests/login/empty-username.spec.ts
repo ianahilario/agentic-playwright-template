@@ -8,11 +8,11 @@ test(
       story: 'unable to log in',
     },
     actor: 'User',
-    expectedOutcome: 'is unable to log in with an empty username',
+    expectedOutcome: 'The user is unable to log in with an empty username',
     scenario: `GIVEN the sign-in screen is open
-WHEN the user signs in without a username
-THEN a username is required`,
-    viewport: 'all',
+                WHEN the user signs in without a username
+                THEN a username is required`,
+    viewport: 'desktop',
     isSmokeTest: false,
   },
   async ({ loginPage }) => {
@@ -21,7 +21,7 @@ THEN a username is required`,
     });
 
     await test.step('STEP-2: Sign in without a username', async () => {
-      await loginPage.login('', '');
+      await loginPage.login('', '', { expectError: true });
     });
 
     await test.step('STEP-3: A username is required', async () => {

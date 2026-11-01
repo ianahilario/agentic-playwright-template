@@ -69,10 +69,10 @@ test(
       story: 'able to log in',
     },
     actor: 'User',
-    expectedOutcome: 'is able to log in with a valid username and password',
+    expectedOutcome: 'The user is able to log in with a valid username and password',
     scenario: `GIVEN the sign-in screen is open
-WHEN the user signs in with a valid username and password
-THEN the products are displayed`,
+                WHEN the user signs in with a valid username and password
+                THEN the products are displayed`,
     viewport: 'all',
     isSmokeTest: true,
   },
@@ -95,6 +95,7 @@ THEN the products are displayed`,
 ```
 
 - Options: every field on the object is required. A non-engineer should understand a failure from the title, step name, and expect message.
+- `expectedOutcome` is a full sentence. Name who, then `is able` or `is unable`, then what they tried.
 - Steps: `STEP-N:` plus user-facing language. Same voice as the outcome, not locator names.
 - One behavior per `test()`. Shared arrange belongs in `beforeEach` or a fixture, not copy-pasted steps.
 

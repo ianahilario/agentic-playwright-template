@@ -9,11 +9,11 @@ test(
       story: 'unable to log in',
     },
     actor: 'User',
-    expectedOutcome: 'is unable to log in with the wrong password',
+    expectedOutcome: 'The user is unable to log in with the wrong password',
     scenario: `GIVEN the sign-in screen is open
-WHEN the user signs in with the wrong password
-THEN the username and password are not accepted`,
-    viewport: 'all',
+                WHEN the user signs in with the wrong password
+                THEN the username and password are not accepted`,
+    viewport: 'desktop',
     isSmokeTest: false,
   },
   async ({ loginPage }) => {
@@ -22,7 +22,7 @@ THEN the username and password are not accepted`,
     });
 
     await test.step('STEP-2: Sign in with the wrong password', async () => {
-      await loginPage.login(standardUser.username, 'wrong-password');
+      await loginPage.login(standardUser.username, 'wrong-password', { expectError: true });
     });
 
     await test.step('STEP-3: The username and password are not accepted', async () => {
