@@ -1,7 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-
 import dotenv from 'dotenv';
-
 import { testTag } from './src/data/test-tags';
 
 dotenv.config({ path: ['.env.secret'], quiet: true });
@@ -19,6 +17,8 @@ export default defineConfig({
     toPass: { timeout: 20_000, intervals: [5_000] },
   },
   use: {
+    baseURL: 'https://www.saucedemo.com',
+    testIdAttribute: 'data-test',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: {
