@@ -136,8 +136,8 @@ The AI Agent would typically open the browser to explore the app and run the sce
 /diagnose-and-heal-test [test] failed with error [error details].
 ```
 
-**Where humans come in:** As with test creation, verify whether the fixed test is up to your standard.
+**Where humans come in:** Ensure the quality of the error log by making the test fail at the right point of failure and adding meaningful error messages. Provide correct error context to the agent. And like with test creation, verify whether the fixed test is up to your standard.
 
-#### Always keep the human in the loop
+## Always keep the human in the loop
 
 A green test is not a sign the test is good enough. Tests are now all the more important in this agentic era. Make sure they cover the risks you want to guard against, with solid assertions.
