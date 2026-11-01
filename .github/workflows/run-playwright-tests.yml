@@ -33,6 +33,8 @@ on:
     secrets:
       USER_PASSWORD:
         required: true
+      CURSOR_API_KEY:
+        required: false
   workflow_dispatch:
     inputs:
       suite:
@@ -195,6 +197,14 @@ jobs:
           path: playwright-report/
           if-no-files-found: warn
           retention-days: 30
+      - name: Upload JSON report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-results-${{ inputs.suite }}
+          path: test-results/results.json
+          if-no-files-found: warn
+          retention-days: 30
 
   result:
     name: Test result
@@ -208,3 +218,20 @@ jobs:
         run: |
           echo "::error::passed=${{ needs.test.outputs.passed }} failed=${{ needs.test.outputs.failed }} skipped=${{ needs.test.outputs.skipped }} flaky=${{ needs.test.outputs.flaky }} report_found=${{ needs.test.outputs.report_found }}"
           exit 1
+
+  # Groups failed tests from a main-branch run and opens or updates GitHub issues.
+  report-as-github-issue:
+    name: report-as-github-issue
+    needs: test
+    if: github.ref == 'refs/heads/main' && needs.test.result == 'success' && needs.test.outputs.report_found == 'true' && needs.test.outputs.failed != '0'
+    permissions:
+      actions: write
+      contents: read
+      issues: write
+    uses: ./.github/workflows/file-test-failure-issues.yml
+    with:
+      artifact: playwright-results-${{ inputs.suite }}
+      assignee: ianahilario
+      run-name: ${{ format('{0} {1}', github.workflow, inputs.suite) }}
+    secrets:
+      CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}

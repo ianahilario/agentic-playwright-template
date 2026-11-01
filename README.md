@@ -86,6 +86,16 @@ When a test fails, the merge is blocked.
 
 The full suite runs nightly at midnight Hong Kong time.
 
+#### On main
+
+When a run on `main` has a failed test, those failures are grouped by error. Cursor writes a GitHub issue for a new group and comments on the open issue for a known group. In that same run, an issue is closed when every test listed on it passed without a retry. This uses the `CURSOR_API_KEY` secret.
+
+The Playwright workflow calls `.github/workflows/file-test-failure-issues.yml` to open, update, and close those issues. Another workflow can call it with the same inputs.
+
+`artifact` is the artifact that contains `results.json`. `assignee` is one GitHub username. This repository passes `ianahilario`. In a repository created from this template, set `assignee` to that repository's owner. `custom-labels` is a comma-separated list of extra labels.
+
+The workflow always applies `test-triage` on every issue it opens or updates, then adds the labels from `custom-labels`. A new issue also gets a hypothesis label and a project label when the grouped failure has them.
+
 ## What makes this agentic
 
 This repository has been set up with an AGENTS.md, skill files, and a memory bank which provides context on how the AI Agent should act.
@@ -118,9 +128,9 @@ It includes instructions to scan the changes and flag any violations of the defi
 
 **Where humans come in:** Continue to iterate on the review instructions as needed. By having the agent cover nitpicky violations, the human can focus their review more on the test design, why we need the test, what it covers, and how it covers.
 
-### Example prompts
+## Example prompts
 
-#### Test creation
+### Test creation
 
 ```text
 Add a test that a user can sort the catalog by price, low to high.
@@ -130,7 +140,7 @@ The AI Agent would typically open the browser to explore the app and run the sce
 
 **Where humans come in:** Verify if the created test is up to your standard since the prompt does not detail the steps for how you specifically want it to assert the scenario. Keep giving it instructions, or edit it yourself, until the test is good.
 
-#### Test fixing and maintenance
+### Test fixing and maintenance
 
 ```text
 /diagnose-and-heal-test [test] failed with error [error details].
