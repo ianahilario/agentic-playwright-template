@@ -232,7 +232,6 @@ jobs:
     with:
       artifact: playwright-results-${{ inputs.suite }}
       assignee: ianahilario
-      suite: ${{ inputs.suite }}
       run-name: ${{ format('{0} {1}', github.workflow, inputs.suite) }}
     secrets:
       CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}

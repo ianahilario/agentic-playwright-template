@@ -17,11 +17,6 @@ on:
         description: Artifact that contains the Playwright results.json file
         required: true
         type: string
-      suite:
-        description: Suffix for the triage artifact name, such as changed, smoke, or full
-        required: false
-        type: string
-        default: ''
       run-name:
         description: Run name stored on the issue. Defaults to the workflow name.
         required: false
@@ -140,7 +135,7 @@ jobs:
         if: always() && steps.collect.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ inputs.suite != '' && format('playwright-failure-triage-{0}', inputs.suite) || 'playwright-failure-triage' }}"
+          name: playwright-failure-triage
           path: playwright-failure-issues
           if-no-files-found: warn
           retention-days: 30
