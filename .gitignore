@@ -8,9 +8,3 @@
 /playwright/.cache/
 /playwright/.auth/
 /.playwright-cli/
-/.agents/
-.claude
-.cursor
-AGENTS.md
-CLAUDE.md
-ARCHITECTURE.md

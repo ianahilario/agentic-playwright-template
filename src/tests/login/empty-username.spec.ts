@@ -1,22 +1,33 @@
-import { expect, setTestTags, test, testTag } from '@/fixtures';
+import { expect, test } from '@/fixtures';
 
 test(
-  'Login > User is unable to log in with an empty username',
-  setTestTags(testTag.desktop, testTag.mobile),
-  async ({ marketingHomePage, loginPage }) => {
+  {
+    id: 'LOGIN-02',
+    feature: {
+      feature: 'login',
+      story: 'unable to log in',
+    },
+    actor: 'User',
+    expectedOutcome: 'is unable to log in with an empty username',
+    scenario: `GIVEN the sign-in screen is open
+WHEN the user signs in without a username
+THEN a username is required`,
+    viewport: 'all',
+    isSmokeTest: false,
+  },
+  async ({ loginPage }) => {
     await test.step('STEP-1: Open the sign-in screen', async () => {
-      await marketingHomePage.header.gotoLoginPage();
+      await loginPage.goToLoginPage();
     });
 
-    await test.step('STEP-2: Continue without entering an email or username', async () => {
-      await loginPage.continueButton.click();
+    await test.step('STEP-2: Sign in without a username', async () => {
+      await loginPage.login('', '');
     });
 
-    await test.step('STEP-3: The form explains that email or username is required', async () => {
-      await expect(
-        loginPage.usernameRequiredError,
-        'the form shows an error saying that email or username is required',
-      ).toHaveText(loginPage.usernameRequiredErrorText);
+    await test.step('STEP-3: A username is required', async () => {
+      await expect(loginPage.loginError, 'the form says a username is required').toHaveText(
+        loginPage.usernameRequiredErrorText,
+      );
     });
   },
 );

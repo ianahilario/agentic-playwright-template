@@ -4,8 +4,6 @@ import playwright from 'eslint-plugin-playwright';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-import requireViewportTag from './eslint/require-viewport-tag.mjs';
-
 export default tseslint.config(
   {
     ignores: [
@@ -51,25 +49,17 @@ export default tseslint.config(
   {
     ...playwright.configs['flat/recommended'],
     files: ['src/tests/**/*.ts'],
-    plugins: {
-      ...playwright.configs['flat/recommended'].plugins,
-      sleekflow: { rules: { 'require-viewport-tag': requireViewportTag } },
-    },
     rules: {
       ...playwright.configs['flat/recommended'].rules,
       'playwright/no-force-option': 'error',
       'playwright/no-page-pause': 'error',
       'playwright/no-wait-for-timeout': 'error',
-      'sleekflow/require-viewport-tag': 'error',
+      // The title is built in src/helpers/test.ts from the options object.
+      'playwright/valid-title': 'off',
     },
   },
   {
-    files: [
-      'src/pages/**/*.ts',
-      'src/components/**/*.ts',
-      'src/fixtures/**/*.ts',
-      'src/helpers/**/*.ts',
-    ],
+    files: ['src/page-objects/**/*.ts', 'src/fixtures/**/*.ts', 'src/helpers/**/*.ts'],
     plugins: { playwright },
     rules: {
       'playwright/missing-playwright-await': 'error',
