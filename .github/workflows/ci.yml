@@ -14,6 +14,10 @@ jobs:
   changed:
     name: Changed tests
     if: github.event_name == 'push' || github.event.pull_request.draft == false
+    permissions:
+      actions: write
+      contents: read
+      issues: write
     uses: ./.github/workflows/run-playwright-tests.yml
     with:
       suite: changed

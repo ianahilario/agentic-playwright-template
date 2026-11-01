@@ -8,6 +8,10 @@ on:
 jobs:
   full-suite:
     name: Full test suite
+    permissions:
+      actions: write
+      contents: read
+      issues: write
     uses: ./.github/workflows/run-playwright-tests.yml
     with:
       suite: full
