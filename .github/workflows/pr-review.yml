@@ -6,7 +6,7 @@
 #
 # Repository secret: CURSOR_API_KEY
 
-name: Playwright review
+name: Playwright code review
 
 on:
   pull_request:
