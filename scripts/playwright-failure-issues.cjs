@@ -1116,20 +1116,3 @@ if (require.main === module) {
     process.exit(1);
   }
 }
-
-module.exports = {
-  buildPrompt,
-  closeComment,
-  collectFromReport,
-  decideClosures,
-  formatSgt,
-  issueLabels,
-  normalizeError,
-  parseAssignee,
-  parseCursorOutput,
-  parseGhList,
-  parseLabelList,
-  planApply,
-  splitGroups,
-  updateIssueBody,
-};
