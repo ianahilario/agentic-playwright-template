@@ -120,7 +120,7 @@ It includes instructions to scan the changes and flag any violations of the defi
 
 ### AI Test Failure Triage
 
-When a run on `main` has a failed test, an agent groups the error and creates a GitHub Issue for reporting via `.github/workflows/file-test-failure-issues.yml`. The issue links the Playwright trace from that run. When the issue is already reported and still open, it adds a comment with the new trace. When the issue no longer happens and the test pass, it closes the issue automatically.
+When a run on `main` has a failed test, an agent groups the error and creates a GitHub Issue for reporting via `.github/workflows/file-test-failure-issues.yml`. The issue links the Playwright trace from that run. When the issue is already reported and still open, it adds a comment with the new trace. When the issue no longer happens and the test passes, it closes the issue automatically.
 
 **Where humans come in:** Review the error, improve the triage when an agent gets something wrong or improve the error logs.
 
