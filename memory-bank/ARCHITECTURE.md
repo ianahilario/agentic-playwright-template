@@ -20,7 +20,7 @@ src/
 playwright.config.ts   Base URL, test id attribute, timeouts, projects. `testDir` is `./src/tests`
 playwright-smart-runner.config.ts
                        Which tests the changed suite runs when a file changes
-scripts/open-changed-specs-ui.cjs
+scripts/open-changed-specs-ui.ts
                        Opens the Playwright UI for that changed list
 playwright/.auth/      Storage state (gitignored)
 ```

@@ -70,7 +70,7 @@ CLAUDE.md                The same rules for Claude Code
 playwright.config.ts     baseURL, projects, timeouts. testDir is ./src/tests
 playwright-smart-runner.config.ts
                          Which tests run for a changed file
-scripts/open-changed-specs-ui.cjs
+scripts/open-changed-specs-ui.ts
                          Opens the Playwright UI for that list
 ```
 

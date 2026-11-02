@@ -57,6 +57,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install dependencies
+        env:
+          HUSKY: '0'
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm ci
+
       - name: Download the JSON report
         uses: actions/download-artifact@v4
         with:
@@ -77,7 +83,7 @@ jobs:
 
       - name: Collect failed tests
         id: collect
-        run: node scripts/playwright-failure-issues.cjs collect
+        run: npx tsx scripts/playwright-failure-issues.ts collect
 
       - name: Remove the raw JSON report
         if: steps.collect.outcome == 'success'
@@ -131,11 +137,11 @@ jobs:
 
       - name: Apply GitHub issue changes
         if: success() && steps.collect.outputs.has-work == 'true'
-        run: node scripts/playwright-failure-issues.cjs apply
+        run: npx tsx scripts/playwright-failure-issues.ts apply
 
       - name: Close resolved issues
         if: always() && steps.collect.outcome == 'success'
-        run: node scripts/playwright-failure-issues.cjs close
+        run: npx tsx scripts/playwright-failure-issues.ts close
 
       - name: Upload triage files
         if: always() && steps.collect.outcome == 'success'
