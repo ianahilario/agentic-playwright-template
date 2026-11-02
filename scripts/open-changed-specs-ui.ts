@@ -1,27 +1,36 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
-const { execFileSync, spawn } = require('child_process');
-const path = require('path');
+import { execFileSync, spawn } from 'node:child_process';
+import path from 'node:path';
 
-const UI_PROJECTS = ['desktop-chrome', 'mobile-chrome'];
+const UI_PROJECTS = ['desktop-chrome', 'mobile-chrome'] as const;
 
-function unquote(line) {
+type CommandFailure = {
+  stderr?: string | Uint8Array;
+  status?: number | null;
+};
+
+function isCommandFailure(error: unknown): error is CommandFailure {
+  return typeof error === 'object' && error !== null;
+}
+
+function unquote(line: string): string {
   if (line.startsWith("'") && line.endsWith("'") && line.length >= 2) {
     return line.slice(1, -1).replaceAll("'\\''", "'");
   }
   return line;
 }
 
-function selectedTests() {
+function selectedTests(): string[] {
   const runner = path.join(__dirname, '..', 'node_modules', '.bin', 'playwright-smart-runner');
-  let output;
+  let output: string;
   try {
     output = execFileSync(runner, ['--list'], {
       encoding: 'utf8',
     });
-  } catch (error) {
-    if (error.stderr) process.stderr.write(error.stderr);
-    process.exit(error.status ?? 1);
+  } catch (error: unknown) {
+    if (isCommandFailure(error) && error.stderr) process.stderr.write(error.stderr);
+    process.exit(isCommandFailure(error) ? (error.status ?? 1) : 1);
   }
 
   return output
@@ -52,7 +61,7 @@ const ui = spawn(playwright, args, {
   stdio: 'inherit',
 });
 
-ui.on('exit', (code, signal) => {
+ui.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
   if (signal) {
     process.kill(process.pid, signal);
     return;

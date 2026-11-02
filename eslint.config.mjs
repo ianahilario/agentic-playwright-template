@@ -47,14 +47,6 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.cjs'],
-    extends: [tseslint.configs.disableTypeChecked],
-    rules: {
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-require-imports': 'off',
-    },
-  },
-  {
     ...playwright.configs['flat/recommended'],
     files: ['src/tests/**/*.ts'],
     rules: {
